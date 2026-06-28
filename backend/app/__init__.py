@@ -1,0 +1,1 @@
+"""Yagl backend application package."""

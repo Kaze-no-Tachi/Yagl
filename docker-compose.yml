@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: yagl
+      POSTGRES_PASSWORD: yagl
+      POSTGRES_DB: yagl
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yagl"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  api:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override so the container talks to the db service regardless of .env.
+      DATABASE_URL: postgresql+psycopg2://yagl:yagl@db:5432/yagl
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - media:/data/media
+    ports:
+      - "8000:8000"
+
+  # Lightweight DB inspector at http://localhost:8080
+  adminer:
+    image: adminer:4
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
+  media:
