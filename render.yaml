@@ -1,0 +1,50 @@
+# Render.com blueprint — free, one-click deploy of the Yagl API + Postgres.
+#
+# How to use:
+#   1. Push this repo to GitHub (already on your branch).
+#   2. On https://dashboard.render.com → "New +" → "Blueprint" → connect this repo.
+#   3. Render reads this file and provisions the API + a free Postgres database.
+#   4. (Optional) In the service's Environment tab, fill in IGDB_CLIENT_ID/SECRET,
+#      GAMEUPC_API_KEY, and STEAM_API_KEY to enable metadata, barcode, and Steam import.
+#
+# Notes on the free tier:
+#   - The web service sleeps after ~15 min idle and cold-starts on the next request.
+#   - Free Postgres keeps your data; the service filesystem is ephemeral, so
+#     uploaded photos reset on redeploy (fine for testing; add a paid disk or S3 later).
+
+databases:
+  - name: yagl-db
+    plan: free
+    databaseName: yagl
+    user: yagl
+
+services:
+  - type: web
+    name: yagl-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yagl-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true        # Render generates a strong secret
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: STORAGE_BACKEND
+        value: local
+      - key: MEDIA_ROOT
+        value: /data/media
+      # Fill these in the dashboard to enable the integrations (left blank = manual add still works).
+      - key: IGDB_CLIENT_ID
+        sync: false
+      - key: IGDB_CLIENT_SECRET
+        sync: false
+      - key: GAMEUPC_API_KEY
+        sync: false
+      - key: STEAM_API_KEY
+        sync: false

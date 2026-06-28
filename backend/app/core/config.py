@@ -5,6 +5,7 @@ corresponding feature degrades gracefully (manual add + CSV import always work).
 """
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +38,17 @@ class Settings(BaseSettings):
 
     # --- Digital library import ---
     steam_api_key: str | None = None
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_db_url(cls, v: str) -> str:
+        # Managed hosts (Render, Heroku, Railway) hand out `postgres://` or
+        # `postgresql://` URLs; SQLAlchemy needs the psycopg2 driver spelled out.
+        if v.startswith("postgres://"):
+            return "postgresql+psycopg2://" + v[len("postgres://"):]
+        if v.startswith("postgresql://"):
+            return "postgresql+psycopg2://" + v[len("postgresql://"):]
+        return v
 
     @property
     def cors_origin_list(self) -> list[str]:
